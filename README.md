@@ -1,1 +1,2 @@
 # mozi
+mozi is a modern robotic system with high-performance communication(based on DDS/share-memory) and low-expense program swicth(based on coroutine). It follows the principle of High cohesion and Low coupling, supporting componentization with behavior-tree structure. And the long-term goal of this software is to provide an esay-use, fully completed one-stop platform for everyone interested in robotics.
