@@ -14,6 +14,10 @@
 #include <valgrind/valgrind.h>
 #endif
 
+namespace mozi {
+namespace core {
+namespace coroutine {
+
 extern "C" {
 
 #define MOZI_VERSION_MAJOR  0
@@ -198,6 +202,9 @@ extern void mz_destory(mz_t* co);
 
 }
 
+}   // namespace coroutine
+}   // namespace core
+}   // namespace mozi
 #endif
 
 

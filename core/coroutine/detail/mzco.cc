@@ -6,6 +6,10 @@
 
 #include "assert_override.h"
 
+namespace mozi {
+namespace core {
+namespace coroutine {
+
 void mz_runtime_test(void)
 {
 #ifdef __i386
@@ -469,3 +473,6 @@ void mz_destory(mz_t* co)
     }
 }
 
+} // namespace coroutine
+} // namespace core
+} // namespace mozi

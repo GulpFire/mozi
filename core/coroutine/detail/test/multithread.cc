@@ -7,6 +7,8 @@
 
 #include "../assert_override.h"
 
+using namespace mozi::core::coroutine;
+
 uint64_t gl_race_mz_yield_ct = 0;
 pthread_mutex_t gl_race_mz_yield_ct_mutex = PTHREAD_MUTEX_INITIALIZER;
 
