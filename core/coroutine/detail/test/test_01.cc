@@ -58,7 +58,7 @@ int main()
     printf("main_co:%p\n", main_co);
     mz_destory(co);
     co = NULL;
-    mz_share_stack_destroy(sstk);
+    mz_share_stack_destory(sstk);
     sstk = NULL;
     mz_destory(main_co);
     main_co = NULL;

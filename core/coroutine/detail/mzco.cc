@@ -273,7 +273,7 @@ mz_share_stack_t* mz_share_stack_new2(size_t sz, char guard_page_enabled)
     return p;
 }
 
-void mz_share_stack_destroy(mz_share_stack_t* sstk)
+void mz_share_stack_destory(mz_share_stack_t* sstk)
 {
     assert(sstk != NULL && sstk->ptr != NULL);
 #ifdef MZ_USE_VALGRIND
@@ -321,7 +321,6 @@ mz_t* mz_create(mz_t* main_co, mz_share_stack_t* share_stack,
 #else
     #error "platform no support yet"
 #endif
-        printf("created\n");
         p->main_co = main_co;
         p->arg = arg;
         p->fp = fp;
@@ -331,7 +330,6 @@ mz_t* mz_create(mz_t* main_co, mz_share_stack_t* share_stack,
         }
         p->save_stack.ptr = malloc(save_stack_sz);
         assertalloc_ptr(p->save_stack.ptr);
-        printf("success2\n");
         p->save_stack.sz = save_stack_sz;
 #if defined(__i386__) || defined(__x86_64__)
         p->save_stack.valid_sz = 0;

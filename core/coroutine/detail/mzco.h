@@ -152,7 +152,7 @@ extern mz_share_stack_t* mz_share_stack_new(size_t sz);
 
 mz_share_stack_t* mz_share_stack_new2(size_t sz, char guard_page_enabled);
 
-extern void mz_share_stack_destroy(mz_share_stack_t* sstk);
+extern void mz_share_stack_destory(mz_share_stack_t* sstk);
 
 extern mz_t* mz_create(mz_t* main_co, mz_share_stack_t* share_stack,
         size_t save_stack_sz, mz_cofuncp_t fp, void* arg);
