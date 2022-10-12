@@ -239,6 +239,135 @@ class ObjectPool : public std::enabled_shared_from_this<ObjectPool<T, kCapacity>
         size_t size() const { return size_; }
 
         size_t capacity() const { return kCapacity; }
+        
+        T* allocate()
+        {
+            auto index = reserve();
+            if (index == NO_INDEX)
+            {
+                return nullptr;
+            }
+
+            return reinterpret_cast<T>(values_[index]);
+        }
+
+        T* create()
+        {
+            auto index = construct();
+            if (index == NO_INDEX)
+            {
+                return nullptr;
+            }
+            return get(index);
+        }
+
+        template <typename... Args>
+        T* create(Args&&... args)
+        {
+            auto index = construct(std::forward<Args>(args)...);
+            if (index == NO_INDEX)
+            {
+                return nullptr;
+            }
+            return get(index);
+        }
+
+        void free(T* ptr, bool destruct)
+        {
+            auto index = pointerToIndex(ptr);
+            if (index >= 0)
+            {
+                remove(index, destruct);
+            }
+        }
+
+        void free(T* ptr)
+        {
+            auto index = pointerToIndex(ptr);
+            if (index >= 0)
+            {
+                remove(index, cell_[index].wasConstructed);
+            }
+        }
+
+        T* insert(const T& element)
+        {
+            auto index = add(element);
+
+            if (index >= 0)
+            {
+                get(index);
+            }
+            else 
+            {
+                return nullptr;
+            }
+
+            return get(index);
+        }
+
+        T* get(int index)
+        {
+            return (cell_[index].isUsed) ? cell_[index].data : nullptr;
+        }
+
+        T* get(T* ptr)
+        {
+            auto index = pointerToIndex(ptr);
+            if (index != NO_INDEX)
+            {
+                return (cell_[index].isUsed) ? cell_[index].data : nullptr;
+            }
+
+            return nullptr;
+        }
+
+        Iterator iterator(T* ptr)
+        {
+            auto index = pointerToIndex(ptr);
+            if (index >= 0)
+            {
+                return iterator(index);
+            }
+            return end();
+        }
+
+        int pointerToIndex(T* ptr)
+        {
+            char* p = reinterpret_cast<char*>(ptr);
+            if (p < first_ || p > last_)
+            {
+                return NO_INDEX;
+            }
+
+            auto delta = p - first_;
+
+            if (static_cast<uint64_t>(delta) % sizeof(T) != 0)
+            {
+                return NO_INDEX;
+            }
+
+            auto index = 
+                static_cast<int>(static_cast<uint64_t>(delta) / sizeof(T));
+
+            if (cell_[index].isUsed && cell_[index].data)
+            {
+                if (cell_[index].data == ptr)
+                {
+                    return index;
+                }
+                else 
+                {
+                    return NO_INDEX;
+                }
+            }
+            return index;
+        }
+
+        T* indexToPointer(int index)
+        {
+            return cell_[index].data;
+        }
 
     protected:
         int nextFree()
