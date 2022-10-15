@@ -1,21 +1,25 @@
 #ifndef MOZI_CORE_COROUTINE_MZ_COROUTINE_H
 #define MOZI_CORE_COROUTINE_MZ_COROUTINE_H
 
-#include "mozi/core/coroutine/detail/mzco.h"
-#include "mozi/core/coroutine/detail/assert_override.h"
+#include "detail/mzco.h"
 
 #include <atomic>
+#include <cstdint>
+#include <csignal>
 #include <chrono>
 #include <functional>
+#include <thread>
+#include <memory>
+#include <mutex>
+#include <iostream>
+
 
 namespace mozi {
 namespace core {
 namespace coroutine {
 
-using MZFunc = std::function<void()>;
-using Duration = std::chrono::microseconds;
-
-enum class CoState {
+enum CoState
+{
     READY,
     FINISHED,
     SLEEP,
@@ -23,226 +27,225 @@ enum class CoState {
     DATA_WAIT
 };
 
-class MZCoroutine {
+class MzCoroutine
+{
     public:
-        explicit MZCoroutine(const MZFunc& func);
-        virtual ~MZCoroutine();
+				using Duration = std::chrono::microseconds;
+				using MzFunc = std::function<void (MzCoroutine&)>;
+        explicit MzCoroutine(const MzFunc& func);
 
-        static void Yield();
-        static void Yield(const CoState& state);
-        static MZCoroutine* GetCurrentCoroutine();
-        static MZCo* GetMainCoroutine();
+				virtual ~MzCoroutine();
 
-        bool Acquire();
-        bool Release();
-        void SetUpdateFlag();
-        CoState Resume();
-        CoState UpdateState();
-        mz_save_stack_t* GetSaveStack();
-        mz_share_stack_t* GetShareStack();
+				void Yield();
 
-        void Run();
-        void Stop();
-        void Wake();
-        void HangUp();
-        void Sleep(const Duration& sleep_duration);
+				void Yield(const CoState& state);
 
-        CoState state() const;
-        void set_state(const CoState& state);
+				mz_t* GetCurrentCoroutine();
 
-        uint64_t id() const;
-        void set_id(uint64_t id);
+				mz_t* GetMainCoroutine();
 
-        int processor_id() const;
-        void set_processor_id(int processor_id);
+				bool Acquire();
+				void Release();
+				void SetUpdateFlag();
+				CoState Resume();
+				CoState UpdateState();
+				mz_share_stack_t* GetShareStack();
 
-        uint32_t priority() const;
-        void set_priority(uint32_t priority);
+				void Run();
+				void Stop();
+				void Wake();
+				void HangUp();
+				void Sleep(const Duration& sleep_duration);
 
-        std::chrono::steady_clock::time_point wake_time() const;
+				const std::string& name() const;
+				void set_name(const std::string& name);
 
-        const std::string& group_name() const;
-        void set_group_name(const std::string& group_name);
+				CoState state() const;
+				void set_state(const CoState& state);
 
+				uint64_t id() const;
+				void set_id(uint64_t id);
+
+				int processor_id() const;
+				void set_processor_id(int processor_id);
+
+				uint32_t priority() const;
+				void set_priority(uint32_t priority);
+
+				std::chrono::steady_clock::time_point wake_time() const;
+
+				const std::string& group_name() const;
+				void set_group_name(const std::string& group_name);
     private:
-        MZCoroutine(MZCoroutine&) = delete;
-        MZCoroutine& operator(MZCoroutine&) = delete;
+        MzCoroutine(const MzCoroutine&) = delete;
+        MzCoroutine& operator = (const MzCoroutine&) = delete;
+        CoState state_;
+        MzFunc func_;
+        mz_share_stack_t* share_stack_;
+        mz_t* main_co_;
+        mz_t* current_co_;
 
-        std::string name_;
-        std::chrono::steady_clock::time_point wake_time_ = 
-            std::chrono::steady_clock::now();
-        MZFunc func_;
-        Costatus state_;
-        std::shared_ptr<mz_save_stack_t> save_stack_;
-        std::shared_ptr<mz_share_stack_t> share_stack_;
-        std::atomic_flag lock_ = ATOMIC_FLAG_INIT;
-        std::atomic_flag updated_ = ATOMIC_FLAG_INIT;
-        
-        bool force_stop_ = false;
+				std::string name_;
+				std::chrono::steady_clock::time_point wake_time_ =
+					std::chrono::steady_clock::now();
+				std::atomic_flag lock_ = ATOMIC_FLAG_INIT;
+				std::atomic_flag updated_ = ATOMIC_FLAG_INIT;
 
-        int process_id_ = -1;
-        uint32_t priority_ = 0;
-        uint64_t id_ = 0;
+				bool force_stop_ = false;
 
-        std::string group_name_;
+				int processor_id_ = 1;
+				uint32_t priority_ = 0;
+				uint64_t id_ = 0;
 
-        static thread_local MZCoroutine* current_coroutine_;
-        using MZCo = mz_t;
-        static thread_local MZCo* main_co_;
+				std::string group_name_;
+
+        static void coEntry()         
+        {
+            auto* coroutine = static_cast<MzCoroutine*>(mz_get_arg());
+            coroutine->Run();
+						//coroutine->Yield(CoState::FINISHED);
+        }
+
 };
 
-inline void MZCoroutine::Yield(const CoState state)
+inline void MzCoroutine::Yield()
 {
-    auto cc = GetCurrentCoroutine();
-    mz_assertptr(cc->main_co_);
-    mz_assertptr(cc->main_co_->main_co);
-    cc->set_state(state);
-    mzswap(cc->main_co_, cc->main_co_->main_co);
+	mz_yield();
 }
 
-inline void MZCoroutine::Yield()
+inline void MzCoroutine::Yield(const CoState& state)
 {
-    mz_assertptr(main_co_);
-    mz_assertptr(main_co_->main_co);
-    mzswap(main_co_, main_co_->main_co);
+	set_state(state);
+	mz_yield();
 }
 
-inline MZCoroutine* MZCoroutine::GetCurrentCoroutine()
+inline mz_t* MzCoroutine::GetCurrentCoroutine() 
 {
-    return current_coroutine_;
+	return current_co_;
 }
 
-inline MZCo* MZCoroutine::GetMainCoroutine()
+inline mz_t* MzCoroutine::GetMainCoroutine() 
 {
-    return main_co_;
+	return main_co_;
 }
 
-inline mz_share_stack_t* GetShareStack()
+inline mz_share_stack_t* MzCoroutine::GetShareStack()
 {
-    return share_stack_;
+	return share_stack_;
 }
 
-inline mz_save_stack_t* GetSaveStack()
+inline void MzCoroutine::Run()
 {
-    return save_stack_;
+	func_(*this);
 }
 
-inline void MZCoroutine::Run()
+inline void MzCoroutine::set_state(const CoState& state)
 {
-    func_();
+	state_ = state;
 }
 
-inline void MZCoroutine::set_state(const CoState& state)
+inline CoState MzCoroutine::state() const { return state_; }
+
+inline std::chrono::steady_clock::time_point MzCoroutine::wake_time() const
 {
-    state_ = state;
+	return wake_time_;
 }
 
-inline CoState() const { return state_; }
-
-inline std::chrono::steady_clockl::time_point MZCoroutine::wake_time() const
+inline void MzCoroutine::Wake()
 {
-    return wake_time_;
+	set_state(CoState::READY);
 }
 
-inline void MZCoroutine::Wake() 
+inline void MzCoroutine::HangUp()
 {
-    state_ = CoState::READY;
+	Yield(CoState::DATA_WAIT);
 }
 
-inline void MZCoroutine::HangUp()
+inline void MzCoroutine::Sleep(const Duration& sleep_duration)
 {
-    Yield(CoState::DATA_WAIT);
+	wake_time_ = std::chrono::steady_clock::now() + sleep_duration;
+	Yield(CoState::SLEEP);
 }
 
-inline void MZCoroutine::Sleep(const Duration& sleep_duration)
+inline uint64_t MzCoroutine::id() const { return id_; }
+
+inline void MzCoroutine::set_id(uint64_t id)
 {
-    wake_time_ = std::chrono::steady_clock::now() + sleep_duration;
-    Yield(CoState::SLEEP);
+	id_ = id;
 }
 
-inline uint64_t MZCoroutine::id() const { return id_; }
-
-inline void MZCoroutine::set_id(uint64_t id)
+inline const std::string& MzCoroutine::name() const
 {
-    id_ = id;
+	return name_;
 }
 
-inline const std::string& MZCoroutine::name() const
+inline void MzCoroutine::set_name(const std::string& name)
 {
-    return name_;
+	name_ = name;
 }
 
-inline void MZCoroutine::set_name(const std::string& name)
+inline int MzCoroutine::processor_id() const
 {
-    name_ = name;
+	return processor_id_;
 }
 
-inline int MZCoroutine::processor_id() const
+inline CoState MzCoroutine::UpdateState()
 {
-    return processor_id_;
+	if (state_ == CoState::SLEEP &&
+			std::chrono::steady_clock::now() > wake_time_)
+	{
+		set_state(CoState::READY);
+		return state_;
+	}
+
+	if (!updated_.test_and_set(std::memory_order_release))
+	{
+		if (state_ == CoState::DATA_WAIT || state_ == CoState::IO_WAIT)
+		{
+			set_state(CoState::READY);
+
+		}
+	}
+	return state_;
 }
 
-inline void MZCoroutine::set_processor_id(i) 
+inline uint32_t MzCoroutine::priority() const
 {
-    processor_id_ = processor_id;
+	return priority_;
 }
 
-inline CoState MZCoroutine::UpdateState()
+inline void MzCoroutine::set_priority(uint32_t priority)
 {
-    if (state_ == CoState::SLEEP &&
-            std::chrono::steady_clock::now() > wake_time_)
-    {
-        state_ = CoState::READY;
-        return state_;
-    }
-
-    if (!updated_.test_and_set(std::memory_order_release))
-    {
-        if (state_ == CoState::DATA_WAIT || state_ == CoState::IO_WAIT)
-        {
-            state_ = CoState::READY;
-        }
-    }
-
-    return state_;
+	priority_ = priority;
 }
 
-inline uint32_t MZCoroutine::priority() const { return priority_; }
-
-inline void MZCoroutine::set_priority(uint32_t priority)
+inline bool MzCoroutine::Acquire()
 {
-    priority_ = priority;
+	return !this->lock_.test_and_set(std::memory_order_acquire);
 }
 
-inline bool MZCoroutine::Acquire()
+inline void MzCoroutine::Release()
 {
-    return !lock_.test_and_set(std::memory_order_acquire);
+	return lock_.clear(std::memory_order_release);
 }
 
-inline bool MZCoroutine::Release()
+inline void MzCoroutine::SetUpdateFlag()
 {
-    return lock_.clear(std::memory_order_release);
+	updated_.test_and_set(std::memory_order_release);
 }
 
-inline void MZCoroutine::SetUpdateFlag()
+inline const std::string& MzCoroutine::group_name() const
 {
-    update_.test_and_set(std::memory_order_release);
+	return group_name_;
 }
 
-inline const std::string& MZCoroutine::group_name() const
+inline void MzCoroutine::set_group_name(const std::string& group_name)
 {
-    return group_name_;
-}
-        
-void MZCoroutine::set_group_name(const std::string& group_name)
-{
-    group_name_ = group_name;
+	group_name_ = group_name;
 }
 
-
-
-} // namespace coroutine
-} // namespace core
-} // namespace mozi
+}
+}
+}
 
 #endif

@@ -4,28 +4,43 @@ namespace mozi {
 namespace core {
 namespace coroutine {
 
-std::once_flag pool_init_flag;
-
-MZCoroutine::MZCoroutine(const MZFunc& func)
+MzCoroutine::MzCoroutine(const MzFunc& func)
+	: func_(std::move(func))
 {
-    main_co_ = std::make_unique<mz_t>(mz_create(NULL, NULL, 0, NULL, NULL));
-    share_stack_ = std::make_shared<mz_share_stack_t>(mz_share_stack_new(0));
-    current_coroutine_->main_co_ = std::make_unique<mz_t>(mz_create(main_co_, share_stack_, 0, func, 0));
-    state_ = CoState::READY;
-    update_.test_and_set(std::memory_order_release);
+	this->main_co_ = mz_get_co();
+	if (!this->main_co_)
+	{
+		mz_thread_init(NULL);
+		this->main_co_ = mz_create(NULL, NULL, 0, NULL, NULL);
+	}
+	this->share_stack_ = mz_share_stack_new(SIGSTKSZ);
+	this->current_co_ = mz_create(this->main_co_, this->share_stack_, 0, 
+			(mz_cofuncp_t)&coEntry, this);
+	this->state_ = CoState::READY;
+}	
+
+MzCoroutine::~MzCoroutine()
+{
+    mz_destory(this->current_co_);
+		mz_share_stack_destory(this->share_stack_);
 }
 
-MZCoroutine::~MZCoroutine()
+CoState MzCoroutine::Resume()
 {
-    mz_exit();
+	if (force_stop_)
+	{
+		state_ = CoState::FINISHED;
+	}
+
+	if (state_ != CoState::READY) 
+	{
+		return state_;
+	}
+	mz_resume(this->current_co_);		
+	return state_;
 }
 
-CoState MZCoroutine::Resume()
-{
-    if unlikely(force_stop_)
-}
-
-void MZCoroutine::Stop() { force_stop_ = false; }
+void MzCoroutine::Stop() { this->force_stop_ = false; }
 
 } // namespace coroutine
 } // namespace core

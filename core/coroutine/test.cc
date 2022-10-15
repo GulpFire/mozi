@@ -1,25 +1,25 @@
-#include "coroutine.h"
+#include "mz_coroutine.h"
 #include <chrono>
 #include <iostream>
 
 using namespace mozi::core::coroutine;
 
-#define TOTAL 10000000
+#define TOTAL 100000
 
 int ping_cnt = 0;
 int pang_cnt = 0;
 
-void pang(Coroutine& co) noexcept
+void pang(MzCoroutine& co) noexcept
 {
     ++pang_cnt;
-    co.yield();
+    co.Yield();
 }
 
 void ping() noexcept
 {
-    Coroutine co(pang);
+    MzCoroutine co(pang);
     ++ping_cnt;
-    co.resume();
+    CoState state = co.Resume();
 }
 
 int main()

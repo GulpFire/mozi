@@ -349,7 +349,6 @@ mz_t* mz_create(mz_t* main_co, mz_share_stack_t* share_stack,
         p->fp = fp;
         p->share_stack = NULL;
         p->save_stack.ptr = NULL;
-        printf("success1\n");
         return p;
     }
     assert(0);
