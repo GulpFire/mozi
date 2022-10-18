@@ -14,7 +14,6 @@
 #include "glog/logging.h"
 
 namespace mozi {
-namespace core {
 namespace log {
 
 static int32_t g_main_thread_pid = getpid();
@@ -34,5 +33,4 @@ bool PidHasChanged()
 }
 
 } // namespace log
-} // namespace core
 } // namespace mozi

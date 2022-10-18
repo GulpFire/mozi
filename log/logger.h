@@ -1,12 +1,11 @@
-#ifndef MOZI_CORE_LOG_LOGGER_H
-#define MOZI_CORE_LOG_LOGGER_H
+#ifndef MOZI_LOG_LOGGER_H
+#define MOZI_LOG_LOGGER_H
 
 #include "glog/logging.h"
 
 #include <mutex>
 
 namespace mozi {
-namespace core {
 namespace logger {
 
 class Logger : public google::base::Logger
@@ -24,6 +23,5 @@ class Logger : public google::base::Logger
 };
 
 } // namespace logger
-} // namespace core
 } // namespace mozi
 #endif

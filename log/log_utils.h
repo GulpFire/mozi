@@ -1,5 +1,5 @@
-#ifndef MOZI_CORE_LOG_LOG_UTILS_H
-#define MOZI_CORE_LOG_LOG_UTILS_H
+#ifndef MOZI_LOG_LOG_UTILS_H
+#define MOZI_LOG_LOG_UTILS_H
 
 #include <sys/stat.h>
 #include <sys/time.h>
@@ -15,7 +15,6 @@
 #include "mozi/core/common/global_data.h"
 
 namespace mozi {
-namespace core {
 namespace log {
 
 inline int64_t CycleClock_Now()
@@ -70,7 +69,6 @@ inline void FindModuleName(std::string* log_message, std::string module_name)
 }
 
 } // namespace log
-} // namespace core
 } // namespace mozi
 
 #endif

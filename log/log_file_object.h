@@ -1,5 +1,5 @@
-#ifndef MOZI_CORE_LOG_LOG_FILE_OBJECT_H
-#define MOZI_CORE_LOG_LOG_FILE_OBJECT_H
+#ifndef MOZI_LOG_LOG_FILE_OBJECT_H
+#define MOZI_LOG_LOG_FILE_OBJECT_H
 
 #include "glog/logging.h"
 
@@ -9,7 +9,6 @@
 #include <string>
 
 namespace mozi {
-namespace core {
 namespace log {
 
 using google::LogServerity;
@@ -55,7 +54,6 @@ class LogFileObject : public google::base::Logger
 };
 
 } // namespace log
-} // namespace core
 } // namespace mozi
 
 #endif
