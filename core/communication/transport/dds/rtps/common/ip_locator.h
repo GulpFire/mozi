@@ -73,7 +73,10 @@ class IPLocator
         static bool setWan(Locator_t& locator, octet o1, octet o2, 
                 octet o3, octet o4);
 
-        static bool set
+        static bool setWan(Locator_t& locator, const std::string& wan);
+
+
+
 };
 
 } // namespace dds
