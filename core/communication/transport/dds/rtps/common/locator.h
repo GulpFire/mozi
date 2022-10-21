@@ -35,34 +35,14 @@ namespace dds {
 #define LOCATOR_KIND_TCPv6      8
 #define LOCATOR_KIND_SHM        16
 
-class Locator;
-
-class IPLocator 
-{
-public:
-    static void createLocator(int32_t kindin, const std::string& address,
-            uint32_t portin, Locator& locator);
-    static bool setIPv4(Locator& locator, const unsigned char* addr);
-    static bool setIPv4(Locator& locator, 
-            octet o1, octet o2, octet o3, octet o4);
-    static bool setIPv4(Locator& locator, const std::string& ipv4);
-    static bool setIPv4(Locator& destlocator, const Locator_t& origlocator);
-    static bool setIPv4address(Locator& destlocator, const std::string& lan,
-            const std::string& wan, const std::string& ipv4);
-    static const octet* getIPv4(const Locator& locator);
-    static bool hasIPv4(const Locator& locator);
-    static std::string toIPv4string(const Locator& locator);
-    static bool copyIPv4(const Locator& locator, unsigned char* dest);
-}
-
-class Locator
+class Locator_t
 {
     public:
         int32_t kind;
         uint32_t port;
         octet address[16];  // IP address;
 
-        Locator()
+        Locator_t()
             : kind(LOCATOR_KIND_UDPv4)
         {
             port = 0;
@@ -70,7 +50,7 @@ class Locator
         }
 
         // move construct
-        Locator(Locator&& loc)
+        Locator_t(Locator_t&& loc)
             : kind(loc.kind)
         {
             port = loc.port;
