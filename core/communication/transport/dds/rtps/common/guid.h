@@ -105,12 +105,137 @@ inline std::istream& operator>>(std::istream& input, GuidPrefix& guiP)
 	}
 	return input;
 }
+struct InstanceHandle;
 
 struct GUID 
 {
 	GuidPrefix guid_prefix;
 	EntityId entity_id;
+
+	GUID() noexcept
+	{
+	}
+
+	GUID(const GuidPrefix& prefix, uint32_t id)
+		: guid_prefix(prefix)
+		, entity_id(id)
+	{}
+
+	GUID(const GuidPrefix& prefix, const EntityId& eid) noexcept
+		: guid_prefix(prefix)
+		, entity_id(eid)
+		{
+		}
+
+	bool isOnSameHostAs(const GUID& other) const
+	{
+		return memcmp(guid_prefix.value, other.guid_prefix.value, 4) == 0;
+	}
+
+	bool isOnSameProcessAs(const GUID& other) const
+	{
+		return memcmp(guid_prefix.value, other.guid_prefix.value, 8) == 0;
+	}
+
+	bool isBuiltin() const
+	{
+		return entity_id.value[3] >= 0xC0;
+	}
+
+	static GUID unknown() noexcept 
+	{
+		return GUID();
+	}
+
+	explicit operator const InstanceHandle&() const
+	{
+		return *reinterpret_cast<const InstanceHandle*>(this);
+	}
 };
+
+inline bool operator==(const GUID& g1, const GUID& g2)
+{
+	if (g1.guid_prefix == g2.guid_prefix && g1.entity_id == g2.entity_id)
+	{
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}
+
+inline bool operator!=(const GUID& g1, const GUID& g2)
+{
+	if (g1.guid_prefix != g2.guid_prefix || g1.entity_id != g2.entity_id)
+	{
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}
+
+inline bool operator<(const GUID& g1, const GUID& g2)
+{
+	auto prefix_cmp = GuidPrefix::cmp(g1.guid_prefix, g2.guid_prefix);
+	if (prefix_cmp < 0)
+	{
+		return true;
+	}
+	else if (prefix_cmp > 0)
+	{
+		return false;
+	}
+	else
+	{
+		return g1.entity_id < g2.entity_id;
+	}
+}
+
+const GUID c_Guid_Unknown;
+
+inline std::ostream& operator<<(std::ostream& output, const GUID& guid)
+{
+	if (guid != c_Guid_Unknown)
+	{
+		output << guid.guid_prefix << "|" << guid.entity_id;
+	}
+	else
+	{
+		output << "|GUID UNKNOWN|"
+	}
+	return output;
+}
+
+inline std::istream& operator>>(std::istream& input, GUID& guid)
+{
+	std::istream::sentry s(input);
+	if (s)
+	{
+		std::ios_base::iostate excp_mask = input.exceptions();
+		try
+		{
+			input.exceptions(excepp_mask | std::ios_base::failbit
+					| std::ios_base::badbit);
+			char sep;
+			input >> guid.guid_prefix >> sep >> guid.entity_id;
+
+			if (sep != '|')
+			{
+				input.setstate(std::ios_base::failbit);
+			}
+		}
+		catch (std::ios_base::failure&)
+		{
+			guid = c_Guid_Unknown;
+		}
+
+		input.exceptions(excp_mask);
+	}
+	return input;
+}
 
 } // namespace dds
 } // namespace communication

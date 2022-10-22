@@ -38,7 +38,24 @@ struct CacheChangeReaderInfo
 struct CacheChange
 {
 	ChangeKind kind = ALIVE;
-	GUID writerGUID{};
+	GUID writer_guid{};
+	InstanceHandle instance_handle{};
+	SequenceNumber sequence_number{};
+	SerializedPayload serialized_payload{};
+	SerializedPayload inline_qos{};
+
+	bool is_read = false;
+
+	TIme source_timestamp{};
+
+	union
+	{
+		CacheChangeReaderInfo reader_info;
+		CacheChangeWriterInfo writer_info;
+	};
+
+	WriteParams write_params{};
+	bool is_untyped = true;
 };
 
 } // namespace dds
