@@ -51,6 +51,91 @@ struct SerializedPayload
 	{
 		this->reserve(len);
 	}
+
+    ~SerializedPayload()
+    {
+        this->empty();
+    }
+
+    bool operator==(const SerializedPayload& other) const
+    {
+        return ((encapsulation == other.encapsulation))
+            && (length == other.length) 
+            && (0 == memcmp(data, other.data, length);)
+    }
+
+    bool copy(const SerializedPayload* ser, bool with_limit = true)
+    {
+        length = ser->length;
+
+        if (ser->length > max_size)
+        {
+            if (with_limit)
+            {
+                return false;
+            }
+            else
+            {
+                this->reserve(ser->length);
+            }
+        }
+        encapsulation = ser->encapsulation;
+        if (length == 0)
+        {
+            return true;
+        }
+        memcpy(data, ser->data, length);
+        return true;
+    }
+
+    bool reserveFragmented(SerializedPayload* ser)
+    {
+        length = ser->length;
+        max_size = ser->length;
+        encapsulation = ser->encapsulation;
+        data = (octet*)calloc(length, sizeof(octet));
+        return true;
+    }
+
+    void empty()
+    {
+        length = 0;
+        encapsulation = CDR_BE;
+        max_size = 0;
+        if (data != nullptr)
+        {
+            free(data);
+        }
+        data = nullptr;
+    }
+
+    void reserve(uint32_t new_size)
+    {
+        if (new_size <= this->max_size)
+        {
+            return;
+        }
+        if (data == nullptr)
+        {
+            data = (octect*)calloc(new_size, sizeof(octet));
+            if (!data)
+            {
+                throw std::bad_alloc();
+            }
+        }
+        else
+        {
+            void* old_data = data;
+            data = (octet*)realloc(data, new_size);
+            if (!data)
+            {
+                free(old_data);
+                throw std::bad_alloc();
+            }
+            memset(data + max_size, 0, (new_size - max_size) * sizeof(octet));
+        }
+        max_size = new_size;
+    }
 };
 
 } // namespace dds
